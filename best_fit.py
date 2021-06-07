@@ -8,12 +8,12 @@ def fit(img, templates, start_percent, stop_percent, threshold):
     best_locations = []
     best_scale = 1
 
-    plt.axis([0, 2, 0, 1])
-    plt.show(block=False)
+    #plt.axis([0, 2, 0, 1])
+    #plt.show(block=False)
 
     x = []
     y = []
-    for scale in [i/100.0 for i in range(start_percent, stop_percent + 1, 3)]:
+    for scale in [i/100.0 for i in range(start_percent, stop_percent + 1, 1)]:
         locations = []
         location_count = 0
         for template in templates:
@@ -26,8 +26,8 @@ def fit(img, templates, start_percent, stop_percent, threshold):
         print("scale: {0}, hits: {1}".format(scale, location_count))
         x.append(location_count)
         y.append(scale)
-        plt.plot(y, x)
-        plt.pause(0.00001)
+        #plt.plot(y, x)
+        #plt.pause(0.00001)
         if (location_count > best_location_count):
             best_location_count = location_count
             best_locations = locations
@@ -35,6 +35,6 @@ def fit(img, templates, start_percent, stop_percent, threshold):
             plt.axis([0, 2, 0, best_location_count])
         elif (location_count < best_location_count):
             pass
-    plt.close()
+    #plt.close()
 
     return best_locations, best_scale
