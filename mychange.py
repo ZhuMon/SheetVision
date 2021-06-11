@@ -9,6 +9,8 @@ from note import Note
 from random import randint
 from midiutil.MidiFile import MIDIFile
 
+f = open("log.txt", 'w')
+
 staff_files = [
     "resources/template_guitar/staff_1.png",
     "resources/template_guitar/staff_2.png",
@@ -85,6 +87,18 @@ def merge_recs(recs, threshold):
         filtered_recs.append(r)
     return filtered_recs
 
+def filter_range(recs, sheet_range):
+    new_recs = []
+    for i in range(len(recs)):
+        for j in sheet_range:
+            if recs[i].y >= j[0] and recs[i].y <= j[1]:
+                new_recs.append(recs[i])
+                break
+
+    f.writelines('new_recs: ' + str(new_recs) + '\n')
+    return new_recs
+
+
 def open_file(path):
     cmd = {'linux':'eog', 'win32':'explorer', 'darwin':'open'}[sys.platform]
     subprocess.run([cmd, path])
@@ -122,11 +136,16 @@ if __name__ == "__main__":
     print("Discovering staff locations...")
     staff_boxes = merge_recs([Rectangle(0, r.y, img_width, r.h) for r in staff_recs], 0.01)
     staff_boxes_img = img.copy()
+    
+    sheet_range = []
+
     for r in staff_boxes:
         r.draw(staff_boxes_img, (0, 0, 255), 2)
+        f.writelines('x: ' + str(r.x) + ' y: ' + str(r.y) + ' w: ' + str(r.w) + ' h: ' + str(r.h) + ' middle: ' + str(r.middle) + ' area: ' + str(r.area) + '\n')
+        sheet_range.append([r.y, r.y + r.h])
     cv2.imwrite('staff_boxes_img.png', staff_boxes_img)
     open_file('staff_boxes_img.png')
-
+    f.writelines(str(sheet_range) + '\n')
     
     
     print("Matching number_0 image...")
@@ -134,6 +153,7 @@ if __name__ == "__main__":
 
     print("Merging number_0 image results...")
     number_0_recs = merge_recs([j for i in number_0_recs for j in i], 0.5)
+    number_0_recs = filter_range(number_0_recs, sheet_range)
     number_0_recs_img = img.copy()
     for r in number_0_recs:
         r.draw(number_0_recs_img, (0, 0, 255), 2)
@@ -145,6 +165,7 @@ if __name__ == "__main__":
 
     print("Merging number_1 image results...")
     number_1_recs = merge_recs([j for i in number_1_recs for j in i], 0.5)
+    number_1_recs = filter_range(number_1_recs, sheet_range)
     number_1_recs_img = img.copy()
     for r in number_1_recs:
         r.draw(number_1_recs_img, (0, 0, 255), 2)
@@ -156,6 +177,7 @@ if __name__ == "__main__":
 
     print("Merging number_2 image results...")
     number_2_recs = merge_recs([j for i in number_2_recs for j in i], 0.5)
+    number_2_recs = filter_range(number_2_recs, sheet_range)
     number_2_recs_img = img.copy()
     for r in number_2_recs:
         r.draw(number_2_recs_img, (0, 0, 255), 2)
@@ -167,6 +189,7 @@ if __name__ == "__main__":
 
     print("Merging number_3 image results...")
     number_3_recs = merge_recs([j for i in number_3_recs for j in i], 0.5)
+    number_3_recs = filter_range(number_3_recs, sheet_range)
     number_3_recs_img = img.copy()
     for r in number_3_recs:
         r.draw(number_3_recs_img, (0, 0, 255), 2)
@@ -178,6 +201,7 @@ if __name__ == "__main__":
 
     print("Merging number_4 image results...")
     number_4_recs = merge_recs([j for i in number_4_recs for j in i], 0.5)
+    number_4_recs = filter_range(number_4_recs, sheet_range)
     number_4_recs_img = img.copy()
     for r in number_4_recs:
         r.draw(number_4_recs_img, (0, 0, 255), 2)
@@ -189,6 +213,7 @@ if __name__ == "__main__":
 
     print("Merging number_5 image results...")
     number_5_recs = merge_recs([j for i in number_5_recs for j in i], 0.5)
+    number_5_recs = filter_range(number_5_recs, sheet_range)
     number_5_recs_img = img.copy()
     for r in number_5_recs:
         r.draw(number_5_recs_img, (0, 0, 255), 2)
