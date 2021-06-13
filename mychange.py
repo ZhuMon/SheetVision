@@ -8,8 +8,94 @@ from rectangle import Rectangle
 from note import Note
 from random import randint
 from midiutil.MidiFile import MIDIFile
+import operator
 
 f = open("log.txt", 'w')
+f_sheet = open("log_sheet.txt", 'w')
+
+class Sheet_Block_Class:
+    def __init__(self, input_recs_list):
+        self.recs_list = input_recs_list.copy()
+
+    def sort_recs(self):
+        self.recs_list.sort(key=operator.attrgetter('y'))
+
+    def print_sheet_element(self):
+        f_sheet.writelines('Sheet Block Class\n')
+        for r in self.recs_list:
+            f_sheet.writelines('x: ' + str(r.x) + ' type: ' + str(r.type_flag) + '\n')
+
+
+class Sheet_Line_Class:
+    def __init__(self, staff_range):
+        self.staff_range = staff_range.copy()
+        self.sheet_block_class_list = []
+        self.recs_list = []
+    
+    def add_recs(self, input_recs):
+        self.recs_list.append(input_recs)
+
+    def sort_recs(self):
+        self.recs_list.sort(key=operator.attrgetter('x'))
+
+    def add_block_class(self):
+        id_count = 0
+        pre_x = -100
+        temp_recs_list = []
+        for r in self.recs_list:
+            f.writelines(str(abs(int(r.x - pre_x))))
+            if abs(r.x - pre_x) <= 10:
+                temp_recs_list.append(r)
+                pre_x = r.x
+            else:
+                if len(temp_recs_list) != 0:
+                    self.sheet_block_class_list.append(Sheet_Block_Class(temp_recs_list.copy()))
+                    temp_recs_list = []
+                    
+                pre_x = r.x
+                temp_recs_list.append(r)
+
+        if len(temp_recs_list) != 0:
+            self.sheet_block_class_list.append(Sheet_Block_Class(temp_recs_list.copy()))
+            temp_recs_list = []
+        
+        for k in range(0, len(self.sheet_block_class_list)):
+            self.sheet_block_class_list[k].sort_recs()
+            #self.sheet_block_class_list[k].print_sheet_element()
+
+    def print_sheet_element(self):
+        f_sheet.writelines('Sheet Line Class\n')
+        for k in range(0, len(self.sheet_block_class_list)):
+            self.sheet_block_class_list[k].print_sheet_element()
+
+    
+class Sheet_Page_Class:
+    def __init__(self, staff_range, recs_list):
+        self.staff_range = staff_range.copy()
+        self.sheet_line_class_list = []
+
+        for r in self.staff_range:
+            self.sheet_line_class_list.append(Sheet_Line_Class(r))
+        f.writelines(str(self.sheet_line_class_list))
+
+        for r in range(0, len(recs_list)):
+            for t in range(0, len(recs_list[r])):
+                for k in range(0, len(self.sheet_line_class_list)):
+                    if recs_list[r][t].y >= self.sheet_line_class_list[k].staff_range[0] and recs_list[r][t].y <= self.sheet_line_class_list[k].staff_range[1]:
+                        self.sheet_line_class_list[k].add_recs(recs_list[r][t])
+                        break
+
+        for k in range(0, len(self.sheet_line_class_list)):
+            self.sheet_line_class_list[k].sort_recs()
+            self.sheet_line_class_list[k].add_block_class()
+            #self.sheet_line_class_list[k].print_sheet_element()
+
+    def print_sheet_element(self):
+        f_sheet.writelines('Sheet Class\n')
+
+        for k in range(0, len(self.sheet_line_class_list)):
+            self.sheet_line_class_list[k].print_sheet_element()
+
 
 staff_files = [
     "resources/template_guitar/staff_1.png",
@@ -40,6 +126,10 @@ number_5_files = [
     "resources/template_guitar/5_1.png",
     ]
 
+number_7_files = [
+    "resources/template_guitar/7_1.png",
+    ]
+
 staff_imgs = [cv2.imread(staff_file, 0) for staff_file in staff_files]
 number_2_imgs = [cv2.imread(number_2_file, 0) for number_2_file in number_2_files]
 number_0_imgs = [cv2.imread(number_0_files, 0) for number_0_files in number_0_files]
@@ -47,14 +137,16 @@ number_1_imgs = [cv2.imread(number_1_file, 0) for number_1_file in number_1_file
 number_3_imgs = [cv2.imread(number_3_file, 0) for number_3_file in number_3_files]
 number_4_imgs = [cv2.imread(number_4_file, 0) for number_4_file in number_4_files]
 number_5_imgs = [cv2.imread(number_5_file, 0) for number_5_file in number_5_files]
+number_7_imgs = [cv2.imread(number_7_file, 0) for number_7_file in number_7_files]
 
 staff_lower, staff_upper, staff_thresh = 60, 150, 0.77
-number_0_lower, number_0_upper, number_0_thresh = 50, 150, 0.70
+number_0_lower, number_0_upper, number_0_thresh = 50, 150, 0.77
 number_1_lower, number_1_upper, number_1_thresh = 80, 150, 0.77
 number_2_lower, number_2_upper, number_2_thresh = 80, 150, 0.77
 number_3_lower, number_3_upper, number_3_thresh = 80, 150, 0.77
 number_4_lower, number_4_upper, number_4_thresh = 80, 150, 0.77
 number_5_lower, number_5_upper, number_5_thresh = 80, 150, 0.77
+number_7_lower, number_7_upper, number_7_thresh = 80, 150, 0.77
 
 
 def locate_images(img, templates, start, stop, threshold):
@@ -87,11 +179,12 @@ def merge_recs(recs, threshold):
         filtered_recs.append(r)
     return filtered_recs
 
-def filter_range(recs, sheet_range):
+def filter_range(recs, sheet_range, type_flage):
     new_recs = []
     for i in range(len(recs)):
         for j in sheet_range:
             if recs[i].y >= j[0] and recs[i].y <= j[1]:
+                recs[i].type_flag = type_flage
                 new_recs.append(recs[i])
                 break
 
@@ -153,7 +246,7 @@ if __name__ == "__main__":
 
     print("Merging number_0 image results...")
     number_0_recs = merge_recs([j for i in number_0_recs for j in i], 0.5)
-    number_0_recs = filter_range(number_0_recs, sheet_range)
+    number_0_recs = filter_range(number_0_recs, sheet_range, 0)
     number_0_recs_img = img.copy()
     for r in number_0_recs:
         r.draw(number_0_recs_img, (0, 0, 255), 2)
@@ -165,7 +258,7 @@ if __name__ == "__main__":
 
     print("Merging number_1 image results...")
     number_1_recs = merge_recs([j for i in number_1_recs for j in i], 0.5)
-    number_1_recs = filter_range(number_1_recs, sheet_range)
+    number_1_recs = filter_range(number_1_recs, sheet_range, 1)
     number_1_recs_img = img.copy()
     for r in number_1_recs:
         r.draw(number_1_recs_img, (0, 0, 255), 2)
@@ -177,7 +270,7 @@ if __name__ == "__main__":
 
     print("Merging number_2 image results...")
     number_2_recs = merge_recs([j for i in number_2_recs for j in i], 0.5)
-    number_2_recs = filter_range(number_2_recs, sheet_range)
+    number_2_recs = filter_range(number_2_recs, sheet_range, 2)
     number_2_recs_img = img.copy()
     for r in number_2_recs:
         r.draw(number_2_recs_img, (0, 0, 255), 2)
@@ -189,7 +282,7 @@ if __name__ == "__main__":
 
     print("Merging number_3 image results...")
     number_3_recs = merge_recs([j for i in number_3_recs for j in i], 0.5)
-    number_3_recs = filter_range(number_3_recs, sheet_range)
+    number_3_recs = filter_range(number_3_recs, sheet_range, 3)
     number_3_recs_img = img.copy()
     for r in number_3_recs:
         r.draw(number_3_recs_img, (0, 0, 255), 2)
@@ -201,7 +294,7 @@ if __name__ == "__main__":
 
     print("Merging number_4 image results...")
     number_4_recs = merge_recs([j for i in number_4_recs for j in i], 0.5)
-    number_4_recs = filter_range(number_4_recs, sheet_range)
+    number_4_recs = filter_range(number_4_recs, sheet_range, 4)
     number_4_recs_img = img.copy()
     for r in number_4_recs:
         r.draw(number_4_recs_img, (0, 0, 255), 2)
@@ -213,14 +306,50 @@ if __name__ == "__main__":
 
     print("Merging number_5 image results...")
     number_5_recs = merge_recs([j for i in number_5_recs for j in i], 0.5)
-    number_5_recs = filter_range(number_5_recs, sheet_range)
+    number_5_recs = filter_range(number_5_recs, sheet_range, 5)
     number_5_recs_img = img.copy()
     for r in number_5_recs:
         r.draw(number_5_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_5_recs_img.png', number_5_recs_img)
     open_file('number_5_recs_img.png')
 
+    print("Matching number_7 image...")
+    number_7_recs = locate_images(img_gray, number_7_imgs, number_7_lower, number_7_upper, number_7_thresh)
+
+    print("Merging number_7 image results...")
+    number_7_recs = merge_recs([j for i in number_7_recs for j in i], 0.5)
+    number_7_recs = filter_range(number_7_recs, sheet_range, 7)
+    number_7_recs_img = img.copy()
+    for r in number_7_recs:
+        r.draw(number_7_recs_img, (0, 0, 255), 2)
+    cv2.imwrite('number_7_recs_img.png', number_7_recs_img)
+    open_file('number_7_recs_img.png')
+
+    all_recs_img = img.copy()
+    for r in number_0_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+    for r in number_1_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+    for r in number_2_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+    for r in number_3_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+    for r in number_4_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+    for r in number_5_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+    for r in number_7_recs:
+        r.draw(all_recs_img, (0, 0, 255), 2)
+
+    cv2.imwrite('all_recs_img.png', all_recs_img)
+    open_file('all_recs_img.png')
+
+
+    sheet_page_class = Sheet_Page_Class(sheet_range, [number_0_recs, number_1_recs, number_2_recs, number_3_recs, number_4_recs, number_5_recs, number_7_recs])
+    sheet_page_class.print_sheet_element()
+
     exit()
+
 
     note_groups = []
     for box in staff_boxes:
