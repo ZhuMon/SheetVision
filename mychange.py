@@ -12,6 +12,7 @@ import operator
 
 f = open("log.txt", 'w')
 f_sheet = open("log_sheet.txt", 'w')
+f_debug = open("log_debug.txt", 'w')
 
 class Sheet_Block_Class:
     def __init__(self, input_recs_list):
@@ -23,14 +24,16 @@ class Sheet_Block_Class:
     def print_sheet_element(self):
         f_sheet.writelines('Sheet Block Class\n')
         for r in self.recs_list:
-            f_sheet.writelines('x: ' + str(r.x) + ' type: ' + str(r.type_flag) + '\n')
+            f_sheet.writelines('x: ' + str(r.x) + ' type: ' + str(r.type_flag) + ' line_num: ' + str(r.line_num) + '\n')
 
 
 class Sheet_Line_Class:
-    def __init__(self, staff_range):
+    def __init__(self, staff_range, staff_boxes, img):
         self.staff_range = staff_range.copy()
         self.sheet_block_class_list = []
         self.recs_list = []
+        self.staff_boxes = staff_boxes
+        self.img = img.copy()
     
     def add_recs(self, input_recs):
         self.recs_list.append(input_recs)
@@ -38,12 +41,54 @@ class Sheet_Line_Class:
     def sort_recs(self):
         self.recs_list.sort(key=operator.attrgetter('x'))
 
+    def check_line(self):
+        self.line_position = []
+        black_dict = np.zeros(int(self.staff_boxes.y + self.staff_boxes.h))
+        left_range = int(self.staff_boxes.x + 0.1 * self.staff_boxes.w)
+        right_range = int(self.staff_boxes.x + 0.9 * self.staff_boxes.w)
+        print('black_dict_len: ' + str(len(black_dict)) + ' left_range: ' + str(left_range) + ' right_range: ' + str(right_range) + '\n')
+
+        f_debug.writelines('a line block\n')
+        for i in range(left_range, right_range, 5):
+            for j in range(int(self.staff_boxes.y), int(self.staff_boxes.y + self.staff_boxes.h)):
+                if self.img[j][i] <= 128:
+                    black_dict[j] += 1
+                    break
+                f_debug.writelines('i : ' + str(i) + ' j : ' + str(j) + ' self.img[j][i]: ' + str(self.img[j][i]) + '\n')
+                
+                
+
+        line_one = np.argmax(black_dict, axis=0)
+        #f.writelines('line_one: ' + str(line_one) + '\n')
+
+        black_dict = np.zeros(int(self.staff_boxes.y + self.staff_boxes.h + 1))
+
+        for i in range(left_range, right_range, 5):
+            for j in range(int(self.staff_boxes.y + self.staff_boxes.h), int(self.staff_boxes.y), -1):
+                if self.img[j][i] <= 128:
+                    black_dict[j] += 1
+                    break
+
+        line_six = np.argmax(black_dict, axis=0)
+
+        self.line_position = [line_one, line_one + int((line_six - line_one) / 5), line_one + int((line_six - line_one) / 5 * 2), line_one + int((line_six - line_one) / 5 * 3), line_one + int((line_six - line_one) / 5 * 4), line_six]
+
+        #f.writelines('line_six: ' + str(line_six) + '\n')
+        f.writelines('line position: ' + str(self.line_position) + '\n')
+
+        for r in range(0, len(self.recs_list)):
+            for line_num in range(0, len(self.line_position)):
+                if self.recs_list[r].y <= self.line_position[line_num] and self.recs_list[r].y + self.recs_list[r].h >= self.line_position[line_num]:
+                    self.recs_list[r].line_num = line_num
+                    break
+
+
+
     def add_block_class(self):
         id_count = 0
         pre_x = -100
         temp_recs_list = []
         for r in self.recs_list:
-            f.writelines(str(abs(int(r.x - pre_x))))
             if abs(r.x - pre_x) <= 10:
                 temp_recs_list.append(r)
                 pre_x = r.x
@@ -70,13 +115,15 @@ class Sheet_Line_Class:
 
     
 class Sheet_Page_Class:
-    def __init__(self, staff_range, recs_list):
+    def __init__(self, staff_range, recs_list, staff_boxes, img):
         self.staff_range = staff_range.copy()
         self.sheet_line_class_list = []
+        self.staff_boxes = staff_boxes.copy()
+        self.img = img.copy()
 
-        for r in self.staff_range:
-            self.sheet_line_class_list.append(Sheet_Line_Class(r))
-        f.writelines(str(self.sheet_line_class_list))
+        for r in range(0, len(self.staff_range)):
+            self.sheet_line_class_list.append(Sheet_Line_Class(self.staff_range[r], self.staff_boxes[r], self.img))
+        #f.writelines(str(self.sheet_line_class_list))
 
         for r in range(0, len(recs_list)):
             for t in range(0, len(recs_list[r])):
@@ -87,6 +134,7 @@ class Sheet_Page_Class:
 
         for k in range(0, len(self.sheet_line_class_list)):
             self.sheet_line_class_list[k].sort_recs()
+            self.sheet_line_class_list[k].check_line()
             self.sheet_line_class_list[k].add_block_class()
             #self.sheet_line_class_list[k].print_sheet_element()
 
@@ -197,6 +245,8 @@ def open_file(path):
     subprocess.run([cmd, path])
 
 if __name__ == "__main__":
+    np.set_printoptions(threshold=sys.maxsize)
+
     img_file = sys.argv[1:][0]
     img = cv2.imread(img_file, 0)
     img_gray = img#cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -205,6 +255,8 @@ if __name__ == "__main__":
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img_width, img_height = img_gray.shape[::-1]
     cv2.imwrite('gray_image.png', img_gray)
+
+    print('img_gray shape: ' + str(img_gray.shape) + '\n')
 
     print("Matching staff image...")
     staff_recs = locate_images(img_gray, staff_imgs, staff_lower, staff_upper, staff_thresh)
@@ -222,7 +274,7 @@ if __name__ == "__main__":
     for r in staff_recs:
         r.draw(staff_recs_img, (0, 0, 255), 2)
     cv2.imwrite('staff_recs_img.png', staff_recs_img)
-    open_file('staff_recs_img.png')
+    #open_file('staff_recs_img.png')
 
     
 
@@ -236,9 +288,18 @@ if __name__ == "__main__":
         r.draw(staff_boxes_img, (0, 0, 255), 2)
         f.writelines('x: ' + str(r.x) + ' y: ' + str(r.y) + ' w: ' + str(r.w) + ' h: ' + str(r.h) + ' middle: ' + str(r.middle) + ' area: ' + str(r.area) + '\n')
         sheet_range.append([r.y, r.y + r.h])
+    
+    #cv2.line(staff_boxes_img, (100, 813), (1000, 891), (0, 0, 255), 5)
+    #cv2.line(staff_boxes_img, (100, 1121), (1000, 1199), (0, 0, 255), 5)
+    #cv2.line(staff_boxes_img, (100, 1439), (1000, 1517), (0, 0, 255), 5)
+    #cv2.line(staff_boxes_img, (100, 1750), (1000, 1828), (0, 0, 255), 5)
+
     cv2.imwrite('staff_boxes_img.png', staff_boxes_img)
+    
+    print('staff box len: ' + str(len(staff_boxes)) + '\n')
     open_file('staff_boxes_img.png')
     f.writelines(str(sheet_range) + '\n')
+
     
     
     print("Matching number_0 image...")
@@ -251,7 +312,7 @@ if __name__ == "__main__":
     for r in number_0_recs:
         r.draw(number_0_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_0_recs_img.png', number_0_recs_img)
-    open_file('number_0_recs_img.png')
+    #open_file('number_0_recs_img.png')
 
     print("Matching number_1 image...")
     number_1_recs = locate_images(img_gray, number_1_imgs, number_1_lower, number_1_upper, number_1_thresh)
@@ -263,7 +324,7 @@ if __name__ == "__main__":
     for r in number_1_recs:
         r.draw(number_1_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_1_recs_img.png', number_1_recs_img)
-    open_file('number_1_recs_img.png')
+    #open_file('number_1_recs_img.png')
 
     print("Matching number_2 image...")
     number_2_recs = locate_images(img_gray, number_2_imgs, number_2_lower, number_2_upper, number_2_thresh)
@@ -275,7 +336,7 @@ if __name__ == "__main__":
     for r in number_2_recs:
         r.draw(number_2_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_2_recs_img.png', number_2_recs_img)
-    open_file('number_2_recs_img.png')
+    #open_file('number_2_recs_img.png')
 
     print("Matching number_3 image...")
     number_3_recs = locate_images(img_gray, number_3_imgs, number_3_lower, number_3_upper, number_3_thresh)
@@ -287,7 +348,7 @@ if __name__ == "__main__":
     for r in number_3_recs:
         r.draw(number_3_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_3_recs_img.png', number_3_recs_img)
-    open_file('number_3_recs_img.png')
+    #open_file('number_3_recs_img.png')
 
     print("Matching number_4 image...")
     number_4_recs = locate_images(img_gray, number_4_imgs, number_4_lower, number_4_upper, number_4_thresh)
@@ -299,7 +360,7 @@ if __name__ == "__main__":
     for r in number_4_recs:
         r.draw(number_4_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_4_recs_img.png', number_4_recs_img)
-    open_file('number_4_recs_img.png')
+    #open_file('number_4_recs_img.png')
 
     print("Matching number_5 image...")
     number_5_recs = locate_images(img_gray, number_5_imgs, number_5_lower, number_5_upper, number_5_thresh)
@@ -311,7 +372,7 @@ if __name__ == "__main__":
     for r in number_5_recs:
         r.draw(number_5_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_5_recs_img.png', number_5_recs_img)
-    open_file('number_5_recs_img.png')
+    #open_file('number_5_recs_img.png')
 
     print("Matching number_7 image...")
     number_7_recs = locate_images(img_gray, number_7_imgs, number_7_lower, number_7_upper, number_7_thresh)
@@ -323,7 +384,7 @@ if __name__ == "__main__":
     for r in number_7_recs:
         r.draw(number_7_recs_img, (0, 0, 255), 2)
     cv2.imwrite('number_7_recs_img.png', number_7_recs_img)
-    open_file('number_7_recs_img.png')
+    #open_file('number_7_recs_img.png')
 
     all_recs_img = img.copy()
     for r in number_0_recs:
@@ -344,8 +405,9 @@ if __name__ == "__main__":
     cv2.imwrite('all_recs_img.png', all_recs_img)
     open_file('all_recs_img.png')
 
+    #f.writelines(str(img_gray) + '\n')
 
-    sheet_page_class = Sheet_Page_Class(sheet_range, [number_0_recs, number_1_recs, number_2_recs, number_3_recs, number_4_recs, number_5_recs, number_7_recs])
+    sheet_page_class = Sheet_Page_Class(sheet_range, [number_0_recs, number_1_recs, number_2_recs, number_3_recs, number_4_recs, number_5_recs, number_7_recs], staff_boxes, img_gray.copy())
     sheet_page_class.print_sheet_element()
 
     exit()
