@@ -26,14 +26,25 @@ class Sheet_Block_Class:
         for r in self.recs_list:
             f_sheet.writelines('x: ' + str(r.x) + ' type: ' + str(r.type_flag) + ' line_num: ' + str(r.line_num) + '\n')
 
+    def get_block_information(self):
+        return_list = []
+
+        for r in self.recs_list:
+            return_list.append([r.type_flag, r.line_num])
+        
+        return return_list
+
+
+
 
 class Sheet_Line_Class:
-    def __init__(self, staff_range, staff_boxes, img):
+    def __init__(self, staff_range, staff_boxes, img, line_number):
         self.staff_range = staff_range.copy()
         self.sheet_block_class_list = []
         self.recs_list = []
         self.staff_boxes = staff_boxes
         self.img = img.copy()
+        self.line_number = line_number
     
     def add_recs(self, input_recs):
         self.recs_list.append(input_recs)
@@ -108,6 +119,9 @@ class Sheet_Line_Class:
             self.sheet_block_class_list[k].sort_recs()
             #self.sheet_block_class_list[k].print_sheet_element()
 
+    def get_note_number(self):
+        return len(self.sheet_block_class_list)
+
     def print_sheet_element(self):
         f_sheet.writelines('Sheet Line Class\n')
         for k in range(0, len(self.sheet_block_class_list)):
@@ -115,14 +129,15 @@ class Sheet_Line_Class:
 
     
 class Sheet_Page_Class:
-    def __init__(self, staff_range, recs_list, staff_boxes, img):
+    def __init__(self, staff_range, recs_list, staff_boxes, img, page_number):
         self.staff_range = staff_range.copy()
         self.sheet_line_class_list = []
         self.staff_boxes = staff_boxes.copy()
         self.img = img.copy()
+        self.page_number = page_number
 
         for r in range(0, len(self.staff_range)):
-            self.sheet_line_class_list.append(Sheet_Line_Class(self.staff_range[r], self.staff_boxes[r], self.img))
+            self.sheet_line_class_list.append(Sheet_Line_Class(self.staff_range[r], self.staff_boxes[r], self.img, r))
         #f.writelines(str(self.sheet_line_class_list))
 
         for r in range(0, len(recs_list)):
@@ -138,6 +153,31 @@ class Sheet_Page_Class:
             self.sheet_line_class_list[k].add_block_class()
             #self.sheet_line_class_list[k].print_sheet_element()
 
+    def get_note_number(self):
+        note_number = 0
+        for k in range(0, len(self.sheet_line_class_list)):
+            note_number += self.sheet_line_class_list[k].get_note_number()
+        return note_number
+
+    def get_note_number_list(self):
+        note_number_list = []
+        for k in range(0, len(self.sheet_line_class_list)):
+            note_number_list.append(self.sheet_line_class_list[k].get_note_number())
+
+        return note_number_list
+
+    def get_note_block(self, input_line_number, input_block_number):
+        return self.sheet_line_class_list[input_line_number].sheet_block_class_list[input_block_number]
+
+    def get_line_range(self, input_line_number):
+        return self.sheet_line_class_list[input_line_number].staff_range
+
+    def get_staff_box_by_line(self, input_line_number):
+        return self.sheet_line_class_list[input_line_number].staff_boxes
+
+    def get_block_information(self, input_line_number, input_block_number):
+        return self.sheet_line_class_list[input_line_number].sheet_block_class_list[input_block_number].get_block_information()
+        
     def print_sheet_element(self):
         f_sheet.writelines('Sheet Class\n')
 
@@ -165,6 +205,7 @@ number_2_files = [
 number_3_files = [
     "resources/template_guitar/3_1.png",
     "resources/template_guitar/3_2.png",
+    "resources/template_guitar/3_3.png",
     ]
 number_4_files = [
     "resources/template_guitar/4_1.png",
@@ -172,6 +213,7 @@ number_4_files = [
 
 number_5_files = [
     "resources/template_guitar/5_1.png",
+    "resources/template_guitar/5_2.png",
     ]
 
 number_7_files = [
@@ -244,10 +286,11 @@ def open_file(path):
     cmd = {'linux':'eog', 'win32':'explorer', 'darwin':'open'}[sys.platform]
     subprocess.run([cmd, path])
 
-if __name__ == "__main__":
-    np.set_printoptions(threshold=sys.maxsize)
+def create_page_sheet(input_img_file, page_number):
+    
 
-    img_file = sys.argv[1:][0]
+    #img_file = sys.argv[1:][0]
+    img_file = input_img_file
     img = cv2.imread(img_file, 0)
     img_gray = img#cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = cv2.cvtColor(img_gray,cv2.COLOR_GRAY2RGB)
@@ -407,11 +450,9 @@ if __name__ == "__main__":
 
     #f.writelines(str(img_gray) + '\n')
 
-    sheet_page_class = Sheet_Page_Class(sheet_range, [number_0_recs, number_1_recs, number_2_recs, number_3_recs, number_4_recs, number_5_recs, number_7_recs], staff_boxes, img_gray.copy())
-    sheet_page_class.print_sheet_element()
-
-    exit()
-
+    sheet_page_class = Sheet_Page_Class(sheet_range, [number_0_recs, number_1_recs, number_2_recs, number_3_recs, number_4_recs, number_5_recs, number_7_recs], staff_boxes, img_gray.copy(), page_number)
+    #sheet_page_class.print_sheet_element()
+    return sheet_page_class
 
     note_groups = []
     for box in staff_boxes:

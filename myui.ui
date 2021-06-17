@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Main_Form</class>
+ <widget class="QWidget" name="Main_Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>988</width>
+    <height>761</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>auto turn sheet music</string>
+  </property>
+  <widget class="QPushButton" name="next_pushButton">
+   <property name="geometry">
+    <rect>
+     <x>530</x>
+     <y>540</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>NEXT</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="back_pushButton">
+   <property name="geometry">
+    <rect>
+     <x>420</x>
+     <y>540</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>BACK</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="listen_pushButton">
+   <property name="geometry">
+    <rect>
+     <x>470</x>
+     <y>630</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>LISTEN</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="stop_pushButton">
+   <property name="geometry">
+    <rect>
+     <x>470</x>
+     <y>690</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>STOP</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="image_label">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>50</y>
+     <width>951</width>
+     <height>261</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
