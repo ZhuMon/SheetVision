@@ -1,0 +1,5 @@
+opencv-python==4.1.2.30
+numpy
+midiutil
+PyQt5
+matplotlib
