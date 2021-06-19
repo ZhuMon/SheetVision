@@ -26,6 +26,10 @@ class Sheet_Block_Class:
         for r in self.recs_list:
             f_sheet.writelines('x: ' + str(r.x) + ' type: ' + str(r.type_flag) + ' line_num: ' + str(r.line_num) + '\n')
 
+    def show_sheet_element(self):
+        for r in self.recs_list:
+            f_sheet.writelines('x: ' + str(r.x) + ' type: ' + str(r.type_flag) + ' line_num: ' + str(r.line_num) + '\n')
+
     def get_block_information(self):
         return_list = []
 

@@ -52,6 +52,9 @@ class Main_UI(QtWidgets.QMainWindow, Ui_Main_Form):
         for i in range(0, len(self.sheet_file_list)):
             self.sheet_list.append(create_page_sheet(self.sheet_file_list[i], i))
 
+        for i in self.sheet_list:
+            i.print_sheet_element()
+
         self.note_number_accumulation_list = []
 
         for i in range(0, len(self.sheet_list)):
@@ -143,7 +146,7 @@ class Main_UI(QtWidgets.QMainWindow, Ui_Main_Form):
         print('find page: ' + str(find_page_number) + ' find line: ' + str(find_line_number) + ' note number: ' + str(input_note_number) + '\n')
 
         note_block = self.sheet_list[find_page_number].get_note_block(find_line_number, input_note_number)
-        note_block.print_sheet_element()
+        note_block.show_sheet_element()
 
         return note_block
 
@@ -208,7 +211,7 @@ if __name__ == "__main__":
     np.set_printoptions(threshold=sys.maxsize)
 
     input_sheet_list = ['resources/sample_guitar/sample_2.png', 'resources/sample_guitar/sample_3.png', 'resources/sample_guitar/sample_4.png', 'resources/sample_guitar/sample_5.png']
-
+    
     app = QtWidgets.QApplication(sys.argv)
     window = Main_UI(input_sheet_list)
     window.show()
