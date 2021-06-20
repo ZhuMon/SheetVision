@@ -44,7 +44,7 @@ class ListenMusic():
     def start_listen(self, target_pitch):
         while True:
             try:
-                audiobuffer = self.stream.read(self.buffer_size)
+                audiobuffer = self.stream.read(self.buffer_size, exception_on_overflow = False)
                 signal = np.fromstring(audiobuffer, dtype=np.float32)
 
                 pitch = self.pitch_o(signal)[0]
@@ -59,6 +59,9 @@ class ListenMusic():
             except KeyboardInterrupt:
                 print("*** Ctrl+C pressed, exiting")
                 break
+            # except Exception as e:
+                # print(e)
+                # break
         self.close() 
         return False
 
