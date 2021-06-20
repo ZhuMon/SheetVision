@@ -344,7 +344,7 @@ def create_page_sheet(input_img_file, page_number):
     cv2.imwrite('staff_boxes_img.png', staff_boxes_img)
     
     print('staff box len: ' + str(len(staff_boxes)) + '\n')
-    open_file('staff_boxes_img.png')
+    # open_file('staff_boxes_img.png')
     f.writelines(str(sheet_range) + '\n')
 
     

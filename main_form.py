@@ -3,9 +3,14 @@ from PyQt5.QtCore import QThread, pyqtSignal, Qt
 import sys
 import os
 import cv2
+import pickle
 import numpy as np
 from myui import Ui_Main_Form
 from mychange import create_page_sheet
+from listen_microphone import ListenMusic
+from utils import *
+
+FRET = 1 # temp
 
 class WorkThread(QThread):
     # 自定義訊號物件。引數str就代表這個訊號可以傳一個字串
@@ -21,14 +26,15 @@ class WorkThread(QThread):
         self.flag = 1
 
         count = 0
-        while(1):
-            if self.flag == 1:
-                count += 1
-                print('in multithread\n')
-                if count % 1000 == 0:
-                    self.trigger.emit('from multithread')
-            else:
-                break
+        while self.flag:
+            self.trigger.emit('test')
+            # if self.flag == 1:
+                # count += 1
+                # print('in multithread\n')
+                # if count % 1000 == 0:
+                    # self.trigger.emit('from multithread')
+            # else:
+                # break
 
     def stop(self):
         self.flag = 0
@@ -49,8 +55,16 @@ class Main_UI(QtWidgets.QMainWindow, Ui_Main_Form):
         self.sheet_file_list = input_sheet_list
         self.sheet_list = []
 
-        for i in range(0, len(self.sheet_file_list)):
-            self.sheet_list.append(create_page_sheet(self.sheet_file_list[i], i))
+        hash_sheet_file = 'sheet_data/cache'
+        if os.path.isfile(hash_sheet_file):
+            with open(hash_sheet_file, 'rb') as f:
+                self.sheet_list = pickle.load(f)
+        else:
+            for i in range(0, len(self.sheet_file_list)):
+                self.sheet_list.append(create_page_sheet(self.sheet_file_list[i], i))
+            with open(hash_sheet_file, 'wb') as f:
+                pickle.dump(self.sheet_list, f)
+
 
         for i in self.sheet_list:
             i.print_sheet_element()
@@ -76,6 +90,7 @@ class Main_UI(QtWidgets.QMainWindow, Ui_Main_Form):
         self.workthread = WorkThread()
         self.workthread.trigger.connect(self.function_for_YX_to_use)
 
+        self.listen = ListenMusic()
         #########################
         
 
@@ -105,15 +120,15 @@ class Main_UI(QtWidgets.QMainWindow, Ui_Main_Form):
     def listen_butten_clicked(self):
         
         self.workthread.start()
-        self.next_pushButton.setEnabled(False)
-        self.back_pushButton.setEnabled(False)
+        # self.next_pushButton.setEnabled(False)
+        # self.back_pushButton.setEnabled(False)
         self.stop_pushButton.setEnabled(True)
         print('listen button\n')
 
     def stop_button_clicked(self):
         self.workthread.stop()
-        self.next_pushButton.setEnabled(True)
-        self.back_pushButton.setEnabled(True)
+        # self.next_pushButton.setEnabled(True)
+        # self.back_pushButton.setEnabled(True)
         self.stop_pushButton.setEnabled(False)
         print('stop button\n')
 
@@ -193,24 +208,26 @@ class Main_UI(QtWidgets.QMainWindow, Ui_Main_Form):
 
         information_list = note_block.get_block_information()
 
-        print('information list(type/position): ' + str(information_list) + '\n')
+        # print('information list(type/position): ' + str(information_list) + '\n')
+        return information_list
 
     ## multithread trigger function
     def function_for_YX_to_use(self, input_element):
-        print('function YX say: ' + str(input_element) + '\n')
-
-
-
-
-
-
-    
-
+        while self.now_note_number < self.max_note_number - 1:
+            information_list = self.find_note_information(self.now_note_number)
+            string, pos = information_list[0][0], information_list[0][1]
+            now_midi = convert_pos2midi(string, pos, FRET)
+            if self.listen.start_listen(now_midi):
+                self.next_button_clicked()
+                continue
+            else:
+                break
 
 if __name__ == "__main__":
     np.set_printoptions(threshold=sys.maxsize)
 
-    input_sheet_list = ['resources/sample_guitar/sample_2.png', 'resources/sample_guitar/sample_3.png', 'resources/sample_guitar/sample_4.png', 'resources/sample_guitar/sample_5.png']
+    # input_sheet_list = ['resources/sample_guitar/sample_2.png', 'resources/sample_guitar/sample_3.png', 'resources/sample_guitar/sample_4.png', 'resources/sample_guitar/sample_5.png']
+    input_sheet_list = ['resources/sample_guitar/sample_2.png']
     
     app = QtWidgets.QApplication(sys.argv)
     window = Main_UI(input_sheet_list)
